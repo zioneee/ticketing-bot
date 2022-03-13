@@ -1,0 +1,4 @@
+git+https://github.com/thesadru/hikari@feat/modal
+git+https://github.com/HyperGH/hikari-miru@feature/modals
+git+https://github.com/tandemdude/hikari-lightbulb
+uvloop>=0.16; sys_platform != "win32"
