@@ -18,7 +18,7 @@ How old are you?"""
 
 LYCLOUD_INT_CREATED = """**・⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢୨୧⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢・**
 
-╭╯ <a:Ly_On:896922493841985626> ╰╮**LyHosting**
+╭╯ <a:pestanita:953458330825805874> ╰╮**LyHosting**
 
 ** `☁` | LyCloud Interview**
 
@@ -37,7 +37,7 @@ __*someone will attend you as soon as possible*__
 **・⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢୨୧⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢・**"""
 
 LYDARK_INT_CREATED = """**・⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢୨୧⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢・**
-╭╯<a:Ly_On:896922493841985626> ╰╮**LyInterviews**
+╭╯ <a:pestanita:953458330825805874> ╰╮**LyInterviews**
 
 ** `✨` | LyDark Network Interview**
 
@@ -56,7 +56,7 @@ __*someone will attend you as soon as possible*__
 **・⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢୨୧⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢・**"""
 
 LYMARKET_INT_CREATED = """**・⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢୨୧⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢・**
-╭╯ <a:Ly_On:896922493841985626> ╰╮**LyInterviews**
+╭╯ <a:pestanita:953458330825805874> ╰╮**LyInterviews**
 
 ** `🍀` | LyMarket Interview**
 
@@ -428,7 +428,7 @@ async def init_views(_: hikari.StartedEvent) -> None:
 @lightbulb.command('send-panel', 'Send the panel to a channel')
 @lightbulb.implements(lightbulb.SlashCommand)
 async def send_panel(ctx: lightbulb.SlashContext) -> None:
-    embed = hikari.Embed(description="""**<:Ly_Admin:898460312741761044> | Join us**
+    embed = hikari.Embed(description="""**<:tilde_rojo:953458397439725569> | Join us**
 
 Do you want to be part of our family? 
 Get ready and get an interview!
@@ -440,7 +440,7 @@ create different sub companies for each **digital market**.
 Right now we have some sub companies you can apply for,
 depending on what sub company and department you want to join.
     
-**<a:LM_Check:943041024836661318> | Our sub companies**
+**<a:tilde_verde:953457957855703100> | Our sub companies**
 
 **❱ LyCloud `☁` **
 **❱ LyDark Network `✨` **
