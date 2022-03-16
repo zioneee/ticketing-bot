@@ -221,6 +221,8 @@ class FormModal(miru.Modal):
             log += "\n" + line + "\n```Answer: " + values[counter] + "```"
             counter += 1
 
+        await asyncio.sleep(2)
+
         view = FormLogView(log, ctx.user.id)
         message = await plugin_interviews.bot.rest.create_message(953088221145874443, log, components=view.build(), user_mentions=True, role_mentions=True)
         view.start(message)
