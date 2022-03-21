@@ -93,7 +93,7 @@ def gen_custom_id(id_type: int, area_id: int = None) -> str:
     """
     custom_id = str(uuid.uuid1())
     if area_id:
-        c.execute('INSERT INTO custom_ids VALUES(?, ?, ?)', (custom_id, area_id, id_type))
+        c.execute('INSERT INTO custom_ids(custom_id, area_id, type) VALUES(?, ?, ?)', (custom_id, area_id, id_type))
     else:
         c.execute('INSERT INTO custom_ids(custom_id, type) VALUES(?, ?)', (custom_id, id_type))
     conn.commit()
@@ -173,7 +173,9 @@ class FormLogView(miru.View):
                                                                     target_type=hikari.PermissionOverwriteType.MEMBER,
                                                                     allow=hikari.Permissions.VIEW_CHANNEL)
 
-        await plugin_interviews.bot.rest.create_message(res[0], 'Hey! <@!{}> took this interview, they\'ll be attending you <@!{}>'.format(ctx.user.id, self.user_id))
+        await plugin_interviews.bot.rest.create_message(res[0],
+                                                        'Hey! <@!{}> took this interview, they\'ll be attending you <@!{}>'.format(
+                                                            ctx.user.id, self.user_id))
 
     @miru.button(label='Reject interview', style=hikari.ButtonStyle.DANGER, emoji='⛔')
     async def reject_interview_button(self, _: miru.Button, ctx: miru.Context):
@@ -224,15 +226,14 @@ class FormModal(miru.Modal):
         await asyncio.sleep(2)
 
         view = FormLogView(log, ctx.user.id)
-        message = await plugin_interviews.bot.rest.create_message(953088221145874443, log, components=view.build(), user_mentions=True, role_mentions=True)
+        message = await plugin_interviews.bot.rest.create_message(953088221145874443, log, components=view.build(),
+                                                                  user_mentions=True, role_mentions=True)
         view.start(message)
 
 
 class InitializeInterview(miru.Button):
 
-    def __init__(self, area_id: int, custom_id: str = None) -> None:
-        if not custom_id:
-            custom_id = gen_custom_id(0, area_id)
+    def __init__(self, area_id: int, custom_id: str) -> None:
         self.area_id = area_id
         label = areas[area_id]['label']
         emoji = areas[area_id]['emoji']
@@ -255,13 +256,16 @@ class InitializeInterview(miru.Button):
         c.execute('SELECT channel_id FROM interviews WHERE user_id = ? AND status = ?', (ctx.user.id, 1))
         already_on_an_interview = c.fetchone()
         if already_on_an_interview:
-            await ctx.respond('You are not allowed to create more than one interview at once. Please attend your current one at <#{}>'.format(already_on_an_interview[0]), flags=hikari.MessageFlag.EPHEMERAL)
+            await ctx.respond(
+                'You are not allowed to create more than one interview at once. Please attend your current one at <#{}>'.format(
+                    already_on_an_interview[0]), flags=hikari.MessageFlag.EPHEMERAL)
             return
 
         modal = FormModal(self.area_id)
         cnt = 0
         for line in areas[self.area_id]['form'][0].splitlines():
-            modal.add_item(miru.TextInput(label=line, style=txt_input_styles[areas[self.area_id]['form'][1][cnt]], required=True))
+            modal.add_item(
+                miru.TextInput(label=line, style=txt_input_styles[areas[self.area_id]['form'][1][cnt]], required=True))
             cnt += 1
 
         c.execute('INSERT INTO form_replies VALUES(?, ?)', (ctx.user.id, 0))
@@ -303,23 +307,27 @@ class InitializeInterview(miru.Button):
                                                                                  category=953286077916016660,
                                                                                  permission_overwrites=perms)
 
-        await ctx.respond('Your interview was created! Check <#{}> for more information.'.format(channel.id), flags=hikari.MessageFlag.EPHEMERAL)
-        c.execute('INSERT INTO interviews(channel_id, vc_id, user_id, status) VALUES(?, ?, ?, ?)', (channel.id, vc_channel.id, ctx.user.id, 1))
+        await ctx.respond('Your interview was created! Check <#{}> for more information.'.format(channel.id),
+                          flags=hikari.MessageFlag.EPHEMERAL)
+        c.execute('INSERT INTO interviews(channel_id, vc_id, user_id, status) VALUES(?, ?, ?, ?)',
+                  (channel.id, vc_channel.id, ctx.user.id, 1))
         conn.commit()
 
         view = miru.View(timeout=None)
-        view.add_item(CloseInterview())
-        view.add_item(DeleteInterview())
+        close_uuid = gen_custom_id(2)
+        delete_uuid = gen_custom_id(1)
+        view.add_item(CloseInterview(close_uuid))
+        view.add_item(DeleteInterview(delete_uuid))
 
         message = await channel.send(areas[self.area_id]['int_crt'].format(ctx.user.id), components=view.build())
         view.start(message)
+        c.execute('UPDATE custom_ids SET message_id = ? WHERE custom_id = ?', (message.id, close_uuid))
+        c.execute('UPDATE custom_ids SET message_id = ? WHERE custom_id = ?', (message.id, delete_uuid))
 
 
 class DeleteInterview(miru.Button):
 
-    def __init__(self, custom_id: str | None=None) -> None:
-        if not custom_id:
-            gen_custom_id(1)
+    def __init__(self, custom_id: str) -> None:
         super().__init__(style=hikari.ButtonStyle.DANGER, label='Delete interview', emoji='🚫', custom_id=custom_id)
 
     async def callback(self, ctx: miru.Context) -> None:
@@ -342,9 +350,7 @@ class DeleteInterview(miru.Button):
 
 class ReOpenInterview(miru.Button):
 
-    def __init__(self, custom_id: str | None=None) -> None:
-        if not custom_id:
-            gen_custom_id(3)
+    def __init__(self, custom_id: str) -> None:
         super().__init__(style=hikari.ButtonStyle.SUCCESS, label='Re-Open interview', emoji='🔓', custom_id=custom_id)
 
     async def callback(self, ctx: miru.Context) -> None:
@@ -365,9 +371,7 @@ class ReOpenInterview(miru.Button):
 
 class CloseInterview(miru.Button):
 
-    def __init__(self, custom_id: str | None=None):
-        if not custom_id:
-            gen_custom_id(2)
+    def __init__(self, custom_id: str):
         super().__init__(style=hikari.ButtonStyle.SECONDARY, label='Close interview', emoji='🔒', custom_id=custom_id)
 
     async def callback(self, ctx: miru.Context):
@@ -380,48 +384,47 @@ class CloseInterview(miru.Button):
         await close_interview(res[0])
 
         view = miru.View(timeout=None)
-        view.add_item(ReOpenInterview())
+        c_id = gen_custom_id(3)
+        view.add_item(ReOpenInterview(c_id))
 
         embed = hikari.Embed(description='This interview has been closed.', color=0x480aba)
         embed.set_footer(text=ctx.user.username, icon=ctx.user.avatar_url or ctx.user.default_avatar_url)
-        message: miru.InteractionResponse = await ctx.respond(embed=embed, components=view.build())
-
-        view.start(await message.retrieve_message())
+        message_proxy: miru.InteractionResponse = await ctx.respond(embed=embed, components=view.build())
+        message = await message_proxy.retrieve_message()
+        view.start(message)
+        c.execute('UPDATE custom_ids SET message_id = ? WHERE custom_id = ?', (message.id, c_id))
+        conn.commit()
 
 
 @plugin_interviews.listener(hikari.StartedEvent)
 async def init_views(_: hikari.StartedEvent) -> None:
-    c.execute('SELECT * FROM custom_ids')
-    res = c.fetchall()
+    c.execute('SELECT * FROM custom_ids WHERE message_id IS NOT NULL')
+    res = c.fetchall()  # Lista de tuples de cuatro elementos [(str, int, int, int)]
     if not res:
         return
 
-    for custom_id, area_id, view_type in res:  # [(1, 1, 1), (2, 1, 1)]
-        match view_type:
-            case 0:  # Init interview view
-                view = miru.View(timeout=None)
-                init_interview_btn = InitializeInterview(area_id, custom_id)
-                view.add_item(init_interview_btn)
+    for custom_id, area_id, view_type, message_id in res:
+        view = miru.View(timeout=None)
+        if view_type == 0:
+            btn = InitializeInterview(area_id, custom_id)
+            view.add_item(btn)
 
-                view.start_listener()
-            case 1:  # Delete interview button
-                view = miru.View(timeout=None)
-                init_dlt_btn = DeleteInterview(custom_id)
-                view.add_item(init_dlt_btn)
+            view.start_listener(message_id)
+        elif view_type == 1:
+            btn = DeleteInterview(custom_id)
+            view.add_item(btn)
 
-                view.start_listener()
-            case 2:  # Close interview button
-                view = miru.View(timeout=None)
-                init_cls_btn = CloseInterview(custom_id)
-                view.add_item(init_cls_btn)
+            view.start_listener(message_id)
+        elif view_type == 2:
+            btn = CloseInterview(custom_id)
+            view.add_item(btn)
 
-                view.start_listener()
-            case 3:  # Re-open interview button
-                view = miru.View(timeout=None)
-                init_re_open_btn = ReOpenInterview(custom_id)
-                view.add_item(init_re_open_btn)
+            view.start_listener(message_id)
+        else:
+            btn = ReOpenInterview(custom_id)
+            view.add_item(btn)
 
-                view.start_listener()
+            view.start_listener(message_id)
 
 
 @plugin_interviews.command()
@@ -450,11 +453,18 @@ depending on what sub company and department you want to join.
     embed.set_footer('LyInterviews 2022')
 
     view = miru.View(timeout=None)
+    custom_ids = []
     for area in areas:
-        view.add_item(InitializeInterview(area))
+        custom_id = gen_custom_id(0, area)
+        custom_ids.append(custom_id)
+        view.add_item(InitializeInterview(area, custom_id))
 
-    message = await plugin_interviews.bot.rest.create_message(ctx.options.channel.id, embed=embed, components=view.build())
+    message = await plugin_interviews.bot.rest.create_message(ctx.options.channel.id, embed=embed,
+                                                              components=view.build())
     view.start(message)
+    for c_id in custom_ids:
+        c.execute('UPDATE custom_ids SET message_id = ? WHERE custom_id = ?', (message.id, c_id))
+    conn.commit()
 
     await ctx.respond('Panel was successfully sent!', flags=hikari.MessageFlag.EPHEMERAL)
 
