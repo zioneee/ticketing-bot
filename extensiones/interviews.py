@@ -191,7 +191,22 @@ class FormLogView(miru.View):
         self.log += '\n\nInterview rejected by <@!{}>'.format(ctx.user.id)
         await ctx.edit_response(content=self.log, components=self.build(), user_mentions=True, role_mentions=True)
 
+        view = miru.View(timeout=None)
+        c_id = gen_custom_id(3)
+        view.add_item(ReOpenInterview(c_id))
+
+        c.execute('SELECT channel_id FROM interviews WHERE user_id = ?', (self.user_id,))
+        ch_id = c.fetchone()
+
+        embed = hikari.Embed(description='This interview has been rejected.\nPlease check your DM for more information.', color=0x480aba)
+        embed.set_footer(text=ctx.user.username, icon=ctx.user.avatar_url or ctx.user.default_avatar_url)
+        message = await plugin_interviews.bot.rest.create_message(ch_id[0], embed=embed, components=view.build())
+        view.start(message)
+
         await close_interview(self.user_id)
+
+        c.execute('UPDATE custom_ids SET message_id = ? WHERE custom_id = ?', (message.id, c_id))
+        conn.commit()
 
     async def on_timeout(self) -> None:
         c.execute('SELECT user_id FROM interviews WHERE user_id = ?', (self.user_id,))
@@ -214,7 +229,7 @@ class FormModal(miru.Modal):
 
     async def callback(self, ctx: miru.ModalContext) -> None:
         # Submit the form.
-        c.execute('UPDATE form_replies SET submit = ? WHERE user_id = ?', (1, ctx.user.id))
+        c.execute('UPDATE form_state SET state = ? WHERE user_id = ?', (1, ctx.user.id))
         conn.commit()
         log = "<@&953095866292531210> New interview request!\nUser: <@!{}>\n\n".format(ctx.user.id)
         counter = 0
@@ -253,6 +268,8 @@ class InitializeInterview(miru.Button):
         - Open a modal for the user, with a small form.
         """
 
+        print('lo que sea')
+
         c.execute('SELECT channel_id FROM interviews WHERE user_id = ? AND status = ?', (ctx.user.id, 1))
         already_on_an_interview = c.fetchone()
         if already_on_an_interview:
@@ -268,20 +285,18 @@ class InitializeInterview(miru.Button):
                 miru.TextInput(label=line, style=txt_input_styles[areas[self.area_id]['form'][1][cnt]], required=True))
             cnt += 1
 
-        c.execute('INSERT INTO form_replies VALUES(?, ?)', (ctx.user.id, 0))
+        c.execute('INSERT INTO form_state VALUES(?, ?)', (ctx.user.id, 0))
         conn.commit()
 
         await modal.send(ctx.interaction)
+        await modal.wait()  # SOLO SI EL TIMEOUT SE PASA.
 
-        await modal.wait()
-
-        c.execute('SELECT submit FROM form_replies WHERE user_id = ? AND submit = ?', (ctx.user.id, 1))
-        submitted = c.fetchone()
-        c.execute('DELETE FROM form_replies WHERE user_id = ?', (ctx.user.id,))
+        c.execute('SELECT state FROM form_state WHERE user_id = ?', (ctx.user.id,))
+        state = c.fetchone()
+        c.execute('DELETE FROM form_state WHERE user_id = ?', (ctx.user.id,))
         conn.commit()
 
-        if not submitted:
-            await ctx.respond('Your form was not registered.', flags=hikari.MessageFlag.EPHEMERAL)
+        if state[0] == 0:  # State was never changed to 1.
             return
 
         perms = [hikari.PermissionOverwrite(
@@ -406,6 +421,7 @@ async def init_views(_: hikari.StartedEvent) -> None:
     for custom_id, area_id, view_type, message_id in res:
         view = miru.View(timeout=None)
         if view_type == 0:
+            print(custom_id, area_id, view_type, message_id)
             btn = InitializeInterview(area_id, custom_id)
             view.add_item(btn)
 
