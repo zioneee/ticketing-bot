@@ -14,7 +14,9 @@ c = conn.cursor()
 
 FORM = """What is your real name?
 Where are you from?
-How old are you?"""
+How old are you?
+How did you know about us?
+Why would you like to join us?"""
 
 LYCLOUD_INT_CREATED = """**・⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢୨୧⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢・**
 
@@ -22,15 +24,15 @@ LYCLOUD_INT_CREATED = """**・⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢୨�
 
 ** `☁` | LyCloud Interview**
 
-Welcome to your interview <@!{}>, we are really happy to have you here!
+Welcome to your interview <@{}>, we are really happy to have you here!
 before someone attends you, please answer these questions:
 
-Are you currently on another hosting company?
-What charge would you like to join?
-Have you worked before on a hosting company?
-How good your level is at working with vps?
-Do you have any technical issue? (Broken microphone,
-My pc isn't working)
+> Are you currently on another hosting company?
+> What charge would you like to join?
+> Have you worked before on a hosting company?
+> How good your level is at working with vps?
+> Do you have any technical issue? (Broken microphone,
+> My pc isn't working)
 
 __*We have a huge schedule! Please be patience,*__
 __*someone will attend you as soon as possible*__
@@ -39,17 +41,17 @@ __*someone will attend you as soon as possible*__
 LYDARK_INT_CREATED = """**・⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢୨୧⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢・**
 ╭╯ <a:pestanita:953458330825805874> ╰╮**LyInterviews**
 
-** `✨` | LyDark Network Interview**
+** `💥` | LyVil Interview**
 
-Welcome to your interview <@!{}>, we are really happy to have you here!
+Welcome to your interview <@{}>, we are really happy to have you here!
 before someone attends you, please answer these questions:
 
-Do you have previous experience in any other network?
-What area would you like to join?
-Are you currently staff on other network?
-Why would you like to join us?
-Do you have any technical issue? (Broken microphone,
-My pc isn't working)
+> Do you have previous experience in any other network?
+> What area would you like to join?
+> Are you currently staff on other network?
+> Why would you like to join us?
+> Do you have any technical issue? (Broken microphone,
+> My pc isn't working)
 
 __*We have a huge schedule! Please be patience,*__
 __*someone will attend you as soon as possible*__
@@ -60,12 +62,12 @@ LYMARKET_INT_CREATED = """**・⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢୨�
 
 ** `🍀` | LyMarket Interview**
 
-Welcome to your interview <@!{}>, we are really happy to have you here!
+Welcome to your interview <@{}>, we are really happy to have you here!
 before someone attends you, please answer these questions:
 
-What department would you like to join?
-Why would you like to join us?
-Do you have any technical issue? (Broken microphone,
+> What department would you like to join?
+> Why would you like to join us?
+> Do you have any technical issue? (Broken microphone,
 My pc isn't working)
 
 __*We have a huge schedule! Please be patience,*__
@@ -73,7 +75,7 @@ __*someone will attend you as soon as possible*__
 **・⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢୨୧⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢・**"""
 
 areas = {1: {'emoji': '☁', 'label': 'LyCloud', 'form': [FORM, [0, 0, 0]], 'int_crt': LYCLOUD_INT_CREATED},
-         2: {'emoji': '✨', 'label': 'LyDark  Network', 'form': [FORM, [0, 0, 0]], 'int_crt': LYDARK_INT_CREATED},
+         2: {'emoji': '💥', 'label': 'LyVil', 'form': [FORM, [0, 0, 0]], 'int_crt': LYDARK_INT_CREATED},
          3: {'emoji': '🍀', 'label': 'LyMarket', 'form': [FORM, [0, 0, 0]], 'int_crt': LYMARKET_INT_CREATED}
          }
 
@@ -91,7 +93,7 @@ def gen_custom_id(id_type: int, area_id: int = None) -> str:
 
     - 3: `Re-open interview button`
     """
-    custom_id = str(uuid.uuid1())
+    custom_id = str(uuid.uuid4())
     if area_id:
         c.execute('INSERT INTO custom_ids(custom_id, area_id, type) VALUES(?, ?, ?)', (custom_id, area_id, id_type))
     else:
@@ -152,7 +154,7 @@ class FormLogView(miru.View):
     def __init__(self, log: str, user_id: int) -> None:
         self.log = log
         self.user_id = user_id
-        super().__init__(timeout=600)
+        super().__init__(timeout=None)
 
     @miru.button(label='Take interview', style=hikari.ButtonStyle.PRIMARY, emoji='✅')
     async def take_interview_button(self, _: miru.Button, ctx: miru.Context):
@@ -172,10 +174,7 @@ class FormLogView(miru.View):
         await plugin_interviews.bot.rest.edit_permission_overwrites(res[1], ctx.user.id,
                                                                     target_type=hikari.PermissionOverwriteType.MEMBER,
                                                                     allow=hikari.Permissions.VIEW_CHANNEL)
-
-        await plugin_interviews.bot.rest.create_message(res[0],
-                                                        'Hey! <@!{}> took this interview, they\'ll be attending you <@!{}>'.format(
-                                                            ctx.user.id, self.user_id))
+        await plugin_interviews.bot.rest.create_message(res[0], 'Hey! <@{}> took this interview, they\'ll be attending you <@{}>'.format(ctx.user.id, self.user_id), user_mentions=True)
 
     @miru.button(label='Reject interview', style=hikari.ButtonStyle.DANGER, emoji='⛔')
     async def reject_interview_button(self, _: miru.Button, ctx: miru.Context):
@@ -208,18 +207,6 @@ class FormLogView(miru.View):
         c.execute('UPDATE custom_ids SET message_id = ? WHERE custom_id = ?', (message.id, c_id))
         conn.commit()
 
-    async def on_timeout(self) -> None:
-        c.execute('SELECT user_id FROM interviews WHERE user_id = ?', (self.user_id,))
-        res = c.fetchone()
-        if not res:
-            return
-
-        for child in self.children:
-            child.disabled = True
-
-        self.log += '\n\nInterview timed out! :('
-        await self.message.edit(content=self.log, components=self.build(), user_mentions=True, role_mentions=True)
-
 
 class FormModal(miru.Modal):
 
@@ -229,8 +216,6 @@ class FormModal(miru.Modal):
 
     async def callback(self, ctx: miru.ModalContext) -> None:
         # Submit the form.
-        c.execute('UPDATE form_state SET state = ? WHERE user_id = ?', (1, ctx.user.id))
-        conn.commit()
         log = "<@&953095866292531210> New interview request!\nUser: <@!{}>\n\n".format(ctx.user.id)
         counter = 0
         values = [value for value in ctx.values.values()]
@@ -268,8 +253,6 @@ class InitializeInterview(miru.Button):
         - Open a modal for the user, with a small form.
         """
 
-        print('lo que sea')
-
         c.execute('SELECT channel_id FROM interviews WHERE user_id = ? AND status = ?', (ctx.user.id, 1))
         already_on_an_interview = c.fetchone()
         if already_on_an_interview:
@@ -285,18 +268,10 @@ class InitializeInterview(miru.Button):
                 miru.TextInput(label=line, style=txt_input_styles[areas[self.area_id]['form'][1][cnt]], required=True))
             cnt += 1
 
-        c.execute('INSERT INTO form_state VALUES(?, ?)', (ctx.user.id, 0))
-        conn.commit()
-
         await modal.send(ctx.interaction)
-        await modal.wait()  # SOLO SI EL TIMEOUT SE PASA.
+        await modal.wait()  # SOLO SI EL TIMEOUT SE PASA O SE MANDA.
 
-        c.execute('SELECT state FROM form_state WHERE user_id = ?', (ctx.user.id,))
-        state = c.fetchone()
-        c.execute('DELETE FROM form_state WHERE user_id = ?', (ctx.user.id,))
-        conn.commit()
-
-        if state[0] == 0:  # State was never changed to 1.
+        if not modal.values:
             return
 
         perms = [hikari.PermissionOverwrite(
@@ -322,11 +297,11 @@ class InitializeInterview(miru.Button):
                                                                                  category=953286077916016660,
                                                                                  permission_overwrites=perms)
 
-        await ctx.respond('Your interview was created! Check <#{}> for more information.'.format(channel.id),
-                          flags=hikari.MessageFlag.EPHEMERAL)
         c.execute('INSERT INTO interviews(channel_id, vc_id, user_id, status) VALUES(?, ?, ?, ?)',
                   (channel.id, vc_channel.id, ctx.user.id, 1))
         conn.commit()
+        await ctx.respond('Your interview was created! Check <#{}> for more information.'.format(channel.id),
+                          flags=hikari.MessageFlag.EPHEMERAL)
 
         view = miru.View(timeout=None)
         close_uuid = gen_custom_id(2)
@@ -334,10 +309,12 @@ class InitializeInterview(miru.Button):
         view.add_item(CloseInterview(close_uuid))
         view.add_item(DeleteInterview(delete_uuid))
 
-        message = await channel.send(areas[self.area_id]['int_crt'].format(ctx.user.id), components=view.build())
+        message = await channel.send(areas[self.area_id]['int_crt'].format(ctx.user.id), components=view.build(), user_mentions=True)
         view.start(message)
+
         c.execute('UPDATE custom_ids SET message_id = ? WHERE custom_id = ?', (message.id, close_uuid))
         c.execute('UPDATE custom_ids SET message_id = ? WHERE custom_id = ?', (message.id, delete_uuid))
+        conn.commit()
 
 
 class DeleteInterview(miru.Button):
@@ -414,14 +391,13 @@ class CloseInterview(miru.Button):
 @plugin_interviews.listener(hikari.StartedEvent)
 async def init_views(_: hikari.StartedEvent) -> None:
     c.execute('SELECT * FROM custom_ids WHERE message_id IS NOT NULL')
-    res = c.fetchall()  # Lista de tuples de cuatro elementos [(str, int, int, int)]
+    res = c.fetchall()  # Lista de tuples de cuatro elementos [(str, int, int, int), (str, int, int, int)]
     if not res:
         return
 
     for custom_id, area_id, view_type, message_id in res:
         view = miru.View(timeout=None)
         if view_type == 0:
-            print(custom_id, area_id, view_type, message_id)
             btn = InitializeInterview(area_id, custom_id)
             view.add_item(btn)
 
