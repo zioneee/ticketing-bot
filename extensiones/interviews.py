@@ -74,9 +74,9 @@ __*We have a huge schedule! Please be patience,*__
 __*someone will attend you as soon as possible*__
 **・⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢୨୧⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢⌢・**"""
 
-areas = {1: {'emoji': '☁', 'label': 'LyCloud', 'form': [FORM, [0, 0, 0]], 'int_crt': LYCLOUD_INT_CREATED},
-         2: {'emoji': '💥', 'label': 'LyVil', 'form': [FORM, [0, 0, 0]], 'int_crt': LYDARK_INT_CREATED},
-         3: {'emoji': '🍀', 'label': 'LyMarket', 'form': [FORM, [0, 0, 0]], 'int_crt': LYMARKET_INT_CREATED}
+areas = {1: {'emoji': '☁', 'label': 'LyCloud', 'form': FORM, 'style_map': [0, 0, 0, 0, 1], 'int_crt': LYCLOUD_INT_CREATED},
+         2: {'emoji': '💥', 'label': 'LyVil', 'form': FORM, 'style_map': [0, 0, 0, 0, 1], 'int_crt': LYDARK_INT_CREATED},
+         3: {'emoji': '🍀', 'label': 'LyMarket', 'form': FORM, 'style_map': [0, 0, 0, 0, 1], 'int_crt': LYMARKET_INT_CREATED}
          }
 
 txt_input_styles = {0: hikari.TextInputStyle.SHORT, 1: hikari.TextInputStyle.PARAGRAPH}
@@ -262,11 +262,8 @@ class InitializeInterview(miru.Button):
             return
 
         modal = FormModal(self.area_id)
-        cnt = 0
-        for line in areas[self.area_id]['form'][0].splitlines():
-            modal.add_item(
-                miru.TextInput(label=line, style=txt_input_styles[areas[self.area_id]['form'][1][cnt]], required=True))
-            cnt += 1
+        for i, line in enumerate(areas[self.area_id]['form'][0].splitlines()):
+            modal.add_item(miru.TextInput(label=line, style=txt_input_styles[areas[self.area_id]['style_map'][i]], required=True))
 
         await modal.send(ctx.interaction)
         await modal.wait()  # SOLO SI EL TIMEOUT SE PASA O SE MANDA.
