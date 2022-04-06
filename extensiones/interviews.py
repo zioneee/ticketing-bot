@@ -5,6 +5,7 @@ import hikari
 import lightbulb
 import miru
 
+from lightbulb.ext import tasks
 import uuid
 import sqlite3
 
@@ -437,7 +438,7 @@ depending on what sub company and department you want to join.
 **<a:tilde_verde:953457957855703100> | Our sub companies**
 
 **❱ LyCloud `☁` **
-**❱ LyDark Network `✨` **
+**❱ LyVil `💥` **
 **❱ LyMarket `🍀` **""", color=0x480aba)
     embed.set_footer('LyInterviews 2022')
 
@@ -456,6 +457,58 @@ depending on what sub company and department you want to join.
     conn.commit()
 
     await ctx.respond('Panel was successfully sent!', flags=hikari.MessageFlag.EPHEMERAL)
+
+
+@tasks.task(m=10, auto_start=True)
+async def update_active_people():
+    """
+    Sistema que permita que a todas las personas que estén con el estado activo
+    en Discord, se les otorgue el rol @online o @active, o se les retire, en caso de
+    estar inactivas. (Cada 15 minutos se hace el check)
+    """
+    c.execute('SELECT * FROM interviewers')
+    res = c.fetchall()
+    if not res:
+        return
+
+    for tup in res:
+        if tup[1] == 1:
+            await plugin_interviews.bot.rest.add_role_to_member(940352032190132306, tup[0], 953095866292531210)
+        else:
+            await plugin_interviews.bot.rest.remove_role_from_member(940352032190132306, tup[0], 953095866292531210)
+
+
+@plugin_interviews.listener(hikari.PresenceUpdateEvent)
+async def update_active_people_event(e: hikari.PresenceUpdateEvent):
+    c.execute('SELECT interviewer_id FROM interviewers')
+    lymarket_team = c.fetchall()
+    if not lymarket_team:
+        return
+    cmp_to = [tup[0] for tup in lymarket_team]
+
+    if e.user_id in cmp_to:
+        if e.presence.visible_status.value == 'online':
+            c.execute('UPDATE interviewers SET state = ? WHERE interviewer_id = ?', (1, e.user_id))
+        else:
+            c.execute('UPDATE interviewers SET state = ? WHERE interviewer_id = ?', (0, e.user_id))
+        conn.commit()
+
+
+@plugin_interviews.listener(hikari.MemberUpdateEvent)
+async def update_lymarket_team(event: hikari.MemberUpdateEvent) -> None:
+    if not event.old_member:
+        return
+    if 946277431403225118 in event.old_member.role_ids and 946277431403225118 not in event.member.role_ids:  # Role was removed
+        c.execute('DELETE FROM interviewers WHERE interviewer_id = ?', (event.member.id,))
+    elif 946277431403225118 not in event.old_member.role_ids and 946277431403225118 in event.member.role_ids:  # Role was added
+        online = 0
+        presence = event.member.get_presence()
+        if presence and presence.visible_status.value == 'online':
+            online = 1
+        c.execute('INSERT INTO interviewers VALUES(?, ?)', (event.member.id, online))
+    else:  # None of above
+        return
+    conn.commit()
 
 
 @plugin_interviews.command()
