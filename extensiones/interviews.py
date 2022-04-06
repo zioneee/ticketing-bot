@@ -216,10 +216,10 @@ class FormModal(miru.Modal):
 
     async def callback(self, ctx: miru.ModalContext) -> None:
         # Submit the form.
-        log = "<@&953095866292531210> New interview request!\nUser: <@!{}>\n\n".format(ctx.user.id)
+        log = "{}\n<@&953095866292531210> New interview request!\nUser: <@!{}>\n\n".format("`{}` {}".format(areas[self.area_id]['emoji'], areas[self.area_id]['label']), ctx.user.id)
         counter = 0
         values = [value for value in ctx.values.values()]
-        for line in areas[self.area_id]['form'][0].splitlines():
+        for line in areas[self.area_id]['form'].splitlines():
             log += "\n" + line + "\n```Answer: " + values[counter] + "```"
             counter += 1
 
@@ -262,10 +262,8 @@ class InitializeInterview(miru.Button):
             return
 
         modal = FormModal(self.area_id)
-        count = 0
-        for line in areas[self.area_id]['form'][0].splitlines():
-            modal.add_item(miru.TextInput(label=line, style=txt_input_styles[areas[self.area_id]['style_map'][count]], required=True))
-            count += 1
+        for i, line in enumerate(areas[self.area_id]['form'].splitlines()):
+            modal.add_item(miru.TextInput(label=line, style=txt_input_styles[areas[self.area_id]['style_map'][i]], required=True))
 
         await modal.send(ctx.interaction)
         await modal.wait()  # SOLO SI EL TIMEOUT SE PASA O SE MANDA.
@@ -355,7 +353,7 @@ class ReOpenInterview(miru.Button):
                                                                     target_type=hikari.PermissionOverwriteType.MEMBER,
                                                                     allow=hikari.Permissions.VIEW_CHANNEL)
 
-        await ctx.respond('Interview has been re-opened. <@!{}>'.format(res[1]))
+        await ctx.respond('Interview has been re-opened. <@!{}>'.format(res[1]), user_mentions=True)
         c.execute('UPDATE interviews SET status = ? WHERE channel_id = ?', (1, ctx.channel_id))
         conn.commit()
 
@@ -468,6 +466,58 @@ async def reset_int_counter(ctx: lightbulb.SlashContext) -> None:
     c.execute('DELETE FROM interviews_counter')
     conn.commit()
     await ctx.respond('Interviews counter has been reset successfully.', flags=hikari.MessageFlag.EPHEMERAL)
+
+
+def is_interviewer(ctx) -> bool:
+    if 946277431403225118 in ctx.member.role_ids:
+        return True
+    return False
+
+
+@plugin_interviews.command()
+@lightbulb.add_checks(lightbulb.Check(is_interviewer))
+@lightbulb.command('force-delete', 'Force delete an interviews.')
+@lightbulb.implements(lightbulb.SlashCommand)
+async def force_delete(ctx: lightbulb.SlashContext) -> None:
+    c.execute('SELECT vc_id FROM interviews WHERE channel_id = ?', (ctx.channel_id,))
+    res = c.fetchone()
+    if not res:
+        await ctx.respond('This channel is not registered as an interview channel.', flags=hikari.MessageFlag.EPHEMERAL)
+        return
+
+    await ctx.respond('This interview will be deleted in 5 seconds...')
+    await asyncio.sleep(5)
+
+    await plugin_interviews.bot.rest.delete_channel(res[0])
+    await plugin_interviews.bot.rest.delete_channel(ctx.channel_id)
+
+    c.execute('DELETE FROM interviews WHERE channel_id = ?', (ctx.channel_id,))
+    conn.commit()
+
+
+@plugin_interviews.command()
+@lightbulb.add_checks(lightbulb.Check(is_interviewer))
+@lightbulb.command('force-close', 'Force close an interview.')
+@lightbulb.implements(lightbulb.SlashCommand)
+async def force_close(ctx: lightbulb.SlashContext) -> None:
+    c.execute('SELECT user_id FROM interviews WHERE channel_id = ?', (ctx.channel_id,))
+    res = c.fetchone()
+    if not res:
+        await ctx.respond('This channel is not registered as an interview channel.', flags=hikari.MessageFlag.EPHEMERAL)
+        return
+    await close_interview(res[0])
+
+    view = miru.View(timeout=None)
+    c_id = gen_custom_id(3)
+    view.add_item(ReOpenInterview(c_id))
+
+    embed = hikari.Embed(description='This interview has been closed.', color=0x480aba)
+    embed.set_footer(text=ctx.user.username, icon=ctx.user.avatar_url or ctx.user.default_avatar_url)
+    message_proxy = await ctx.respond(embed=embed, components=view.build())
+    message = await message_proxy.message()
+    view.start(message)
+    c.execute('UPDATE custom_ids SET message_id = ? WHERE custom_id = ?', (message.id, c_id))
+    conn.commit()
 
 
 def load(bot: lightbulb.BotApp) -> None:
