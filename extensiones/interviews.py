@@ -262,8 +262,10 @@ class InitializeInterview(miru.Button):
             return
 
         modal = FormModal(self.area_id)
-        for i, line in enumerate(areas[self.area_id]['form'][0].splitlines()):
-            modal.add_item(miru.TextInput(label=line, style=txt_input_styles[areas[self.area_id]['style_map'][i]], required=True))
+        count = 0
+        for line in areas[self.area_id]['form'][0].splitlines():
+            modal.add_item(miru.TextInput(label=line, style=txt_input_styles[areas[self.area_id]['style_map'][count]], required=True))
+            count += 1
 
         await modal.send(ctx.interaction)
         await modal.wait()  # SOLO SI EL TIMEOUT SE PASA O SE MANDA.
