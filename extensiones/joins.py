@@ -14,6 +14,7 @@ Don't forget to check our information channels to know
 more about us.""".format(event.member.id), color=0x480aba)
     embed.set_thumbnail(event.member.avatar_url or event.member.default_avatar_url)
     await plugin_joins.bot.rest.create_message(941470787959934997, embed=embed)
+    await plugin_joins.bot.rest.add_role_to_member(940352032190132306, event.member.id, 946277453461065728)
 
 
 def load(bot):
