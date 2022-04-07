@@ -6,14 +6,12 @@ plugin_joins = lightbulb.Plugin('pluginJoins')
 
 @plugin_joins.listener(hikari.MemberCreateEvent)
 async def joins(event: hikari.MemberCreateEvent) -> None:
-    embed = hikari.Embed(description="""**💼  | LyInterviews**
-
-・*Welcome to the official LyInterviews Discord* <@!{}>!
-
-Here you can have an interview to join any of **LyDark Studios** sub company, we
-can't wait anymore to have you in our family! Get an interview here! <#941471112175435866>
+    embed = hikari.Embed(description=""":scroll: | Welcome to LyInterviews
  
-Remember to always follow our <#941471648538849330> as well as Discord TOS.""".format(event.member.id), color=0x480aba)
+   ✶﹕Hey! <@!{}> Welcome to our Discord!
+
+Don't forget to check our information channels to know 
+more about us.""".format(event.member.id), color=0x480aba)
     embed.set_thumbnail(event.member.avatar_url or event.member.default_avatar_url)
     await plugin_joins.bot.rest.create_message(941470787959934997, embed=embed)
 
